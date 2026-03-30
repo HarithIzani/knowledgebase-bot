@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledgebase-Bot</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Knowledgebase-Bot</h1>
+    <p class="subtitle">Lesson 1: upload files and save them locally</p>
+
+    <section class="card">
+      <h2>Upload documents</h2>
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="files" multiple />
+        <button type="submit">Upload</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Uploaded documents</h2>
+
+      {% if documents %}
+      <ul>
+        {% for doc in documents %}
+          <li>
+            <strong>{{ doc.original_name }}</strong><br />
+            <small>ID: {{ doc.doc_id }}</small><br />
+            <small>Uploaded: {{ doc.uploaded_at }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p>No documents uploaded yet.</p>
+      {% endif %}
+    </section>
+    <p><a href="/search">Go to search</a></p>
+  </main>
+</body>
+</html>

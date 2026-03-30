@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Knowledgebase Bot — Architecture Flowchart</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f1117 100%);
+      border-bottom: 1px solid #334155;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header .logo {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    header h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; }
+    header p  { font-size: 13px; color: #64748b; margin-top: 2px; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 20px 40px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .tab {
+      padding: 10px 20px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: #64748b;
+      background: transparent;
+      border: none;
+      transition: all .2s;
+    }
+    .tab:hover { color: #94a3b8; background: #1e293b; }
+    .tab.active { color: #6366f1; background: #1e293b; border-bottom: 2px solid #6366f1; }
+
+    .panel { display: none; padding: 40px; }
+    .panel.active { display: block; }
+
+    /* ── FLOWCHART NODES ── */
+    .flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+    .node {
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      min-width: 220px;
+      max-width: 280px;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .node:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+    .node .sub { font-size: 11px; font-weight: 400; opacity: .75; margin-top: 4px; }
+
+    /* Colour themes */
+    .n-user   { background: linear-gradient(135deg,#1d4ed8,#3b82f6); border: 1px solid #60a5fa44; }
+    .n-route  { background: linear-gradient(135deg,#7c3aed,#8b5cf6); border: 1px solid #a78bfa44; }
+    .n-proc   { background: linear-gradient(135deg,#0f766e,#14b8a6); border: 1px solid #2dd4bf44; }
+    .n-db     { background: linear-gradient(135deg,#b45309,#f59e0b); border: 1px solid #fcd34d44; color:#1c1917; }
+    .n-file   { background: linear-gradient(135deg,#be185d,#ec4899); border: 1px solid #f9a8d444; }
+    .n-resp   { background: linear-gradient(135deg,#166534,#22c55e); border: 1px solid #86efac44; }
+    .n-err    { background: linear-gradient(135deg,#991b1b,#ef4444); border: 1px solid #fca5a544; }
+    .n-grey   { background: linear-gradient(135deg,#1e293b,#334155); border: 1px solid #47556944; }
+    .n-future { background: linear-gradient(135deg,#1e1e2e,#2d2d44); border: 2px dashed #6366f155; color:#818cf8; }
+
+    /* Arrows & connectors */
+    .arrow { display: flex; flex-direction: column; align-items: center; }
+    .arrow-line {
+      width: 2px;
+      background: linear-gradient(to bottom, #334155, #475569);
+      flex-grow: 1;
+      min-height: 24px;
+    }
+    .arrow-head {
+      width: 0; height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 10px solid #475569;
+    }
+    .arrow-label {
+      font-size: 11px;
+      color: #64748b;
+      background: #0f1117;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin: -4px 0;
+      white-space: nowrap;
+    }
+
+    /* Branch layout */
+    .branch { display: flex; align-items: flex-start; gap: 0; }
+    .branch-line-h {
+      height: 2px;
+      background: #334155;
+      flex: 1;
+      margin-top: 22px;
+    }
+    .branch-col { display: flex; flex-direction: column; align-items: center; }
+    .branch-down { width: 2px; background: #334155; height: 24px; }
+
+    /* Parallel row */
+    .row { display: flex; gap: 24px; align-items: flex-start; justify-content: center; }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      margin-bottom: 32px;
+      padding: 16px 20px;
+      background: #1e293b;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* ── DB SCHEMA ── */
+    .schema { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin-top: 24px; }
+    .table-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      min-width: 280px;
+    }
+    .table-header {
+      background: linear-gradient(135deg,#b45309,#f59e0b);
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      color: #1c1917;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .table-row {
+      display: flex; align-items: center;
+      padding: 8px 16px;
+      border-bottom: 1px solid #263148;
+      font-size: 12px;
+      gap: 8px;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .col-name { font-weight: 600; color: #e2e8f0; min-width: 120px; }
+    .col-type { color: #22d3ee; font-family: monospace; min-width: 80px; }
+    .col-note { color: #64748b; font-size: 11px; }
+    .pk-badge { background: #f59e0b; color: #1c1917; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .fk-badge { background: #6366f1; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+    .fk-arrow { display: flex; align-items: center; justify-content: center; gap: 8px; color: #6366f1; font-size: 12px; margin: 8px; }
+
+    /* ── API CARDS ── */
+    .api-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .api-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .api-header {
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid #334155;
+    }
+    .method {
+      font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 5px;
+    }
+    .get  { background: #166534; color: #86efac; }
+    .post { background: #7c2d12; color: #fdba74; }
+    .api-path { font-family: monospace; font-size: 13px; color: #e2e8f0; }
+    .api-body { padding: 12px 16px; font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .step-list { list-style: none; }
+    .step-list li { padding: 4px 0; display: flex; gap: 8px; }
+    .step-list li::before { content: '→'; color: #6366f1; font-weight: 700; }
+
+    /* ── FILE PROCESSING ── */
+    .proc-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+    .proc-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 180px;
+      text-align: center;
+    }
+    .proc-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .proc-card h3 { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .proc-card p  { font-size: 11px; color: #64748b; }
+
+    /* ── CHUNK VIZ ── */
+    .chunk-viz { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-top: 20px; }
+    .chunk-row { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+    .chunk-block {
+      height: 36px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      color: #fff;
+      position: relative;
+    }
+    .chunk-main { background: #6366f1; }
+    .chunk-overlap { background: #8b5cf6; opacity: .65; }
+
+    /* ── SECTION HEADINGS ── */
+    .section-title { font-size: 16px; font-weight: 700; color: #f1f5f9; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .section-title span { font-size: 18px; }
+
+    .divider { border: none; border-top: 1px solid #1e293b; margin: 32px 0; }
+
+    /* tag chip */
+    .chip { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+    .chip-blue { background:#1d4ed822; color:#60a5fa; border:1px solid #1d4ed844; }
+    .chip-green { background:#16653422; color:#86efac; border:1px solid #16653444; }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧠</div>
+  <div>
+    <h1>Knowledgebase Bot — Architecture Flowchart</h1>
+    <p>FastAPI · SQLite · pypdf · python-docx · Jinja2</p>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="show('upload')">📤 Upload Flow</button>
+  <button class="tab" onclick="show('processing')">⚙️ Text Processing</button>
+  <button class="tab" onclick="show('api')">🔌 API Endpoints</button>
+  <button class="tab" onclick="show('db')">🗄️ Database Schema</button>
+  <button class="tab" onclick="show('arch')">🏗️ Full Architecture</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — UPLOAD FLOW
+═══════════════════════════════════════════════ -->
+<div id="tab-upload" class="panel active">
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>User / Browser</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>FastAPI Route</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#14b8a6"></div>Processing Logic</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Database</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>File System</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Response</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Error / Skip</div>
+  </div>
+
+  <div class="flow">
+
+    <!-- User -->
+    <div class="node n-user">
+      🌐 Browser / User
+      <div class="sub">Opens <code>/</code> in browser</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:20px"></div><div class="arrow-label">GET /</div><div class="arrow-line" style="height:20px"></div><div class="arrow-head"></div></div>
+
+    <!-- FastAPI serves page -->
+    <div class="node n-route">
+      FastAPI — GET /
+      <div class="sub">main.py → list_documents()</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:16px"></div><div class="arrow-label">queries SQLite</div><div class="arrow-line" style="height:16px"></div><div class="arrow-head"></div></div>
+
+    <div class="node n-db">
+      🗄️ SQLite — documents table
+      <div class="sub">SELECT * ORDER BY uploaded_at DESC</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:16px"></div><div class="arrow-label">returns rows</div><div class="arrow-line" style="height:16px"></div><div class="arrow-head"></div></div>
+
+    <div class="node n-resp">
+      Render index.html (Jinja2)
+      <div class="sub">Document list + upload form</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:16px"></div><div class="arrow-label">user selects files &amp; clicks Upload</div><div class="arrow-line" style="height:16px"></div><div class="arrow-head"></div></div>
+
+    <!-- POST /upload -->
+    <div class="node n-route">
+      FastAPI — POST /upload
+      <div class="sub">multipart/form-data · UploadFile list</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:20px"></div><div class="arrow-label">loop: for each file</div><div class="arrow-line" style="height:20px"></div><div class="arrow-head"></div></div>
+
+    <!-- Steps box -->
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px 28px;min-width:340px;max-width:480px;margin:0 auto;">
+      <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:12px;">Per-File Processing Loop</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Generate UUID</span><br><span style="color:#64748b;">doc_id = uuid4() &nbsp;·&nbsp; safe filename = {uuid}{ext}</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#ec4899;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Save raw file to disk</span><br><span style="color:#64748b;">/data/uploads/{uuid}.{ext}</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#1c1917;">3</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Insert document metadata → DB</span><br><span style="color:#64748b;">insert_document(doc_id, filename, original_name)</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#14b8a6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">4</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Extract text</span><br><span style="color:#64748b;">ingestion.extract_text(file_path)</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#14b8a6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">5</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Normalize text</span><br><span style="color:#64748b;">ingestion.normalize_text(raw_text)</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#14b8a6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">6</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Chunk text</span><br><span style="color:#64748b;">ingestion.chunk_text(text, size=800, overlap=100)</span></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;color:#1c1917;">7</div>
+          <div style="font-size:12px;"><span style="color:#e2e8f0;font-weight:600;">Insert chunks → DB</span><br><span style="color:#64748b;">db.insert_chunks(doc_id, chunks)</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Branch: success vs error -->
+    <div style="margin-top:8px;display:flex;flex-direction:column;align-items:center;">
+      <div class="arrow-line" style="height:20px"></div>
+      <div style="display:flex;gap:60px;align-items:flex-start;position:relative;">
+        <div style="position:absolute;top:0;left:calc(50% - 1px);height:1px;background:#334155;width:100%;transform:translateX(-50%);"></div>
+        <!-- success -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0;padding-top:20px;">
+          <div class="arrow-line" style="height:12px"></div>
+          <div class="arrow-label" style="color:#22c55e;">✓ supported format</div>
+          <div class="arrow-line" style="height:12px"></div>
+          <div class="arrow-head"></div>
+          <div class="node n-resp" style="min-width:180px;">
+            Chunks stored ✓
+            <div class="sub">Next file in loop</div>
+          </div>
+        </div>
+        <!-- error -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0;padding-top:20px;">
+          <div class="arrow-line" style="height:12px"></div>
+          <div class="arrow-label" style="color:#ef4444;">✗ unsupported format</div>
+          <div class="arrow-line" style="height:12px"></div>
+          <div class="arrow-head"></div>
+          <div class="node n-err" style="min-width:180px;">
+            ValueError raised
+            <div class="sub">File skipped silently</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:40px;" class="arrow-line"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <div class="node n-route">
+      303 Redirect → GET /
+      <div class="sub">RedirectResponse(url="/")</div>
+    </div>
+    <div class="arrow"><div class="arrow-line" style="height:20px"></div><div class="arrow-head"></div></div>
+
+    <div class="node n-resp">
+      ✅ Updated Document List
+      <div class="sub">New files visible in the UI</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — TEXT PROCESSING
+═══════════════════════════════════════════════ -->
+<div id="tab-processing" class="panel">
+
+  <div class="section-title"><span>⚙️</span> Text Extraction &amp; Processing Pipeline (ingestion.py)</div>
+
+  <!-- File format dispatching -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:24px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:16px;">STEP 1 — extract_text(file_path) — Format Dispatcher</div>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+
+      <div style="text-align:center;">
+        <div class="node n-proc" style="min-width:140px;margin-bottom:0;">
+          .txt file
+          <div class="sub">extract_text_from_txt()</div>
+        </div>
+        <div style="height:16px;width:2px;background:#334155;margin:0 auto;"></div>
+        <div class="node n-grey" style="min-width:140px;font-size:11px;">
+          open(path, 'r', encoding='utf-8', errors='ignore')
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div class="node n-proc" style="min-width:140px;margin-bottom:0;">
+          .pdf file
+          <div class="sub">extract_text_from_pdf()</div>
+        </div>
+        <div style="height:16px;width:2px;background:#334155;margin:0 auto;"></div>
+        <div class="node n-grey" style="min-width:140px;font-size:11px;">
+          pypdf.PdfReader()<br>iterate pages → extract_text()
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div class="node n-proc" style="min-width:140px;margin-bottom:0;">
+          .docx file
+          <div class="sub">extract_text_from_docx()</div>
+        </div>
+        <div style="height:16px;width:2px;background:#334155;margin:0 auto;"></div>
+        <div class="node n-grey" style="min-width:140px;font-size:11px;">
+          python-docx Document()<br>iterate paragraphs → .text
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div class="node n-err" style="min-width:140px;margin-bottom:0;">
+          other format
+        </div>
+        <div style="height:16px;width:2px;background:#334155;margin:0 auto;"></div>
+        <div class="node n-err" style="min-width:140px;font-size:11px;">
+          raise ValueError<br>(file skipped in main.py)
+        </div>
+      </div>
+
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#0f1117;padding:8px 16px;border-radius:8px;font-size:12px;color:#94a3b8;">
+        ↓ returns <code style="color:#22d3ee;">raw_text: str</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Normalize -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:24px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:12px;">STEP 2 — normalize_text(text)</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <div style="background:#0f1117;border-radius:8px;padding:12px 16px;font-size:12px;color:#94a3b8;flex:1;min-width:200px;">
+        <div style="color:#64748b;margin-bottom:6px;">INPUT (raw extracted text)</div>
+        <code style="color:#e2e8f0;white-space:pre;">Hello World
+
+  &nbsp;&nbsp;&nbsp;Some text&nbsp;&nbsp;&nbsp;
+
+Another paragraph</code>
+      </div>
+      <div style="font-size:20px;color:#6366f1;">→</div>
+      <div style="background:#0f1117;border-radius:8px;padding:12px 16px;font-size:12px;flex:1;min-width:200px;">
+        <div style="color:#64748b;margin-bottom:6px;">OPERATIONS</div>
+        <div style="color:#94a3b8;">1. Split by newlines</div>
+        <div style="color:#94a3b8;">2. Strip whitespace from each line</div>
+        <div style="color:#94a3b8;">3. Remove blank lines</div>
+        <div style="color:#94a3b8;">4. Rejoin with newlines</div>
+      </div>
+      <div style="font-size:20px;color:#22c55e;">→</div>
+      <div style="background:#0f1117;border-radius:8px;padding:12px 16px;font-size:12px;color:#94a3b8;flex:1;min-width:200px;">
+        <div style="color:#64748b;margin-bottom:6px;">OUTPUT (clean text)</div>
+        <code style="color:#22c55e;white-space:pre;">Hello World
+Some text
+Another paragraph</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Chunking -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:12px;">STEP 3 — chunk_text(text, chunk_size=800, overlap=100)</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Sliding window algorithm — creates overlapping chunks to preserve context at boundaries.</div>
+
+    <!-- Visual chunk diagram -->
+    <div style="background:#0f1117;border-radius:8px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Full text (e.g. 2600 characters)</div>
+      <div style="height:28px;background:linear-gradient(90deg,#1e293b,#334155);border-radius:6px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;padding:0 12px;font-size:11px;color:#64748b;">████████████████████████████████████████████████████████████</div>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;color:#94a3b8;width:60px;flex-shrink:0;">Chunk 0</div>
+          <div style="height:22px;border-radius:4px;background:#6366f1;flex:0 0 calc(800/2600*100%);display:flex;align-items:center;padding:0 8px;font-size:10px;white-space:nowrap;overflow:hidden;">chars 0–799</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;color:#94a3b8;width:60px;flex-shrink:0;">Chunk 1</div>
+          <div style="height:22px;background:transparent;flex:0 0 calc(700/2600*100%);"></div>
+          <div style="height:22px;border-radius:4px;background:#8b5cf6;flex:0 0 calc(100/2600*100%);"></div><!-- overlap -->
+          <div style="height:22px;border-radius:4px;background:#6366f1;flex:0 0 calc(700/2600*100%);display:flex;align-items:center;padding:0 8px;font-size:10px;white-space:nowrap;overflow:hidden;">chars 700–1499</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;color:#94a3b8;width:60px;flex-shrink:0;">Chunk 2</div>
+          <div style="height:22px;background:transparent;flex:0 0 calc(1400/2600*100%);"></div>
+          <div style="height:22px;border-radius:4px;background:#8b5cf6;flex:0 0 calc(100/2600*100%);"></div>
+          <div style="height:22px;border-radius:4px;background:#6366f1;flex:0 0 calc(700/2600*100%);display:flex;align-items:center;padding:0 8px;font-size:10px;white-space:nowrap;overflow:hidden;">chars 1400–2199</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;color:#94a3b8;width:60px;flex-shrink:0;">Chunk 3</div>
+          <div style="height:22px;background:transparent;flex:0 0 calc(2100/2600*100%);"></div>
+          <div style="height:22px;border-radius:4px;background:#8b5cf6;flex:0 0 calc(100/2600*100%);"></div>
+          <div style="height:22px;border-radius:4px;background:#6366f1;flex:0 0 calc(400/2600*100%);display:flex;align-items:center;padding:0 8px;font-size:10px;white-space:nowrap;overflow:hidden;">chars 2100–2599</div>
+        </div>
+
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;"><div style="width:12px;height:12px;border-radius:2px;background:#6366f1;"></div>Main chunk (800 chars)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;"><div style="width:12px;height:12px;border-radius:2px;background:#8b5cf6;"></div>Overlap (100 chars)</div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:#64748b;">
+      <strong style="color:#94a3b8;">Algorithm:</strong> start = 0 → while start &lt; len(text) → chunk = text[start : start+chunk_size] → skip if empty → start += (chunk_size − overlap)
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 3 — API ENDPOINTS
+═══════════════════════════════════════════════ -->
+<div id="tab-api" class="panel">
+
+  <div class="section-title"><span>🔌</span> API Endpoints (main.py)</div>
+
+  <div class="api-grid">
+
+    <div class="api-card">
+      <div class="api-header">
+        <span class="method get">GET</span>
+        <span class="api-path">/</span>
+      </div>
+      <div class="api-body">
+        <div style="color:#e2e8f0;font-weight:600;margin-bottom:8px;">Homepage — Document List</div>
+        <ul class="step-list">
+          <li>Calls <code>db.list_documents()</code></li>
+          <li>Returns all docs ordered by upload date DESC</li>
+          <li>Renders <code>index.html</code> with Jinja2</li>
+          <li>Response: <span class="chip chip-blue">200 HTML</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <span class="method post">POST</span>
+        <span class="api-path">/upload</span>
+      </div>
+      <div class="api-body">
+        <div style="color:#e2e8f0;font-weight:600;margin-bottom:8px;">File Upload — Full Ingestion Pipeline</div>
+        <ul class="step-list">
+          <li>Accepts <code>multipart/form-data</code> — list of files</li>
+          <li>For each: UUID → save → DB insert → extract → normalize → chunk → DB insert</li>
+          <li>Unsupported formats silently skipped (ValueError caught)</li>
+          <li>Response: <span class="chip chip-blue">303 Redirect → /</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <span class="method get">GET</span>
+        <span class="api-path">/health</span>
+      </div>
+      <div class="api-body">
+        <div style="color:#e2e8f0;font-weight:600;margin-bottom:8px;">Health Check</div>
+        <ul class="step-list">
+          <li>No logic — immediate response</li>
+          <li>Used by deployment/infra monitoring</li>
+          <li>Response: <span class="chip chip-green"><code>{"status": "ok"}</code></span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="api-card">
+      <div class="api-header">
+        <span class="method get">GET</span>
+        <span class="api-path">/documents/{document_id}/chunks</span>
+      </div>
+      <div class="api-body">
+        <div style="color:#e2e8f0;font-weight:600;margin-bottom:8px;">Retrieve Chunks for a Document</div>
+        <ul class="step-list">
+          <li>Calls <code>db.get_chunks_for_document(doc_id)</code></li>
+          <li>Returns chunks ordered by <code>chunk_index</code> ASC</li>
+          <li>Response: <span class="chip chip-green">200 JSON</span></li>
+        </ul>
+        <div style="background:#0f1117;border-radius:6px;padding:10px;margin-top:8px;font-size:11px;font-family:monospace;color:#94a3b8;">
+          {<br>
+          &nbsp;&nbsp;"document_id": "...",<br>
+          &nbsp;&nbsp;"chunk_count": 12,<br>
+          &nbsp;&nbsp;"chunks": [<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;{"chunk_index": 0, "content": "..."},<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;...<br>
+          &nbsp;&nbsp;]<br>
+          }
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:24px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:8px;">🚀 Startup Sequence</div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;">
+      <div class="node n-grey" style="min-width:0;padding:8px 14px;">FastAPI app created</div>
+      <div style="color:#6366f1;font-size:16px;">→</div>
+      <div class="node n-grey" style="min-width:0;padding:8px 14px;">Static files mounted at /static</div>
+      <div style="color:#6366f1;font-size:16px;">→</div>
+      <div class="node n-grey" style="min-width:0;padding:8px 14px;">Jinja2 templates configured</div>
+      <div style="color:#6366f1;font-size:16px;">→</div>
+      <div class="node n-db" style="min-width:0;padding:8px 14px;color:#1c1917;">startup event → init_db()</div>
+      <div style="color:#6366f1;font-size:16px;">→</div>
+      <div class="node n-resp" style="min-width:0;padding:8px 14px;">Uvicorn listening :8000</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 4 — DATABASE SCHEMA
+═══════════════════════════════════════════════ -->
+<div id="tab-db" class="panel">
+
+  <div class="section-title"><span>🗄️</span> Database Schema (SQLite — /data/app.db)</div>
+
+  <div class="schema">
+
+    <div class="table-card">
+      <div class="table-header">📄 documents</div>
+      <div class="table-row">
+        <span class="pk-badge">PK</span>
+        <span class="col-name">doc_id</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">UUID v4, unique document identifier</span>
+      </div>
+      <div class="table-row">
+        <div style="width:24px"></div>
+        <span class="col-name">filename</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">Safe name: {uuid}.{ext}</span>
+      </div>
+      <div class="table-row">
+        <div style="width:24px"></div>
+        <span class="col-name">original_name</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">User's original filename</span>
+      </div>
+      <div class="table-row">
+        <div style="width:24px"></div>
+        <span class="col-name">uploaded_at</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">ISO 8601 UTC timestamp</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:20px 0;">
+      <div style="font-size:11px;color:#6366f1;text-align:center;">1</div>
+      <div style="width:40px;height:2px;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div>
+      <div style="font-size:11px;color:#8b5cf6;text-align:center;">∞</div>
+      <div style="font-size:10px;color:#64748b;margin-top:4px;">One document<br>has many chunks</div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">🧩 chunks</div>
+      <div class="table-row">
+        <span class="pk-badge">PK</span>
+        <span class="col-name">id</span>
+        <span class="col-type">INTEGER</span>
+        <span class="col-note">Auto-increment</span>
+      </div>
+      <div class="table-row">
+        <span class="fk-badge">FK</span>
+        <span class="col-name">document_id</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">→ documents.doc_id</span>
+      </div>
+      <div class="table-row">
+        <div style="width:24px"></div>
+        <span class="col-name">chunk_index</span>
+        <span class="col-type">INTEGER</span>
+        <span class="col-note">Sequential position (0-based)</span>
+      </div>
+      <div class="table-row">
+        <div style="width:24px"></div>
+        <span class="col-name">content</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-note">800-char text segment</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Data flow through DB -->
+  <div style="margin-top:32px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:16px;">Database Operations Map</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:8px;">WRITES</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:2;">
+          <code style="color:#22d3ee;">init_db()</code> — CREATE TABLE IF NOT EXISTS<br>
+          <code style="color:#22d3ee;">insert_document()</code> — INSERT INTO documents<br>
+          <code style="color:#22d3ee;">insert_chunks()</code> — INSERT INTO chunks (batch)
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#6366f1;margin-bottom:8px;">READS</div>
+        <div style="font-size:12px;color:#94a3b8;line-height:2;">
+          <code style="color:#22d3ee;">list_documents()</code> — SELECT * FROM documents ORDER BY uploaded_at DESC<br>
+          <code style="color:#22d3ee;">get_chunks_for_document()</code> — SELECT * FROM chunks WHERE document_id=? ORDER BY chunk_index
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:#0f1117;border-radius:8px;font-size:11px;color:#64748b;">
+      ⚠️ Each function opens a new SQLite connection and closes it after use. No connection pooling. Uses parameterized queries to prevent SQL injection. Row factory set to <code>sqlite3.Row</code> for dict-like access.
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 5 — FULL ARCHITECTURE
+═══════════════════════════════════════════════ -->
+<div id="tab-arch" class="panel">
+
+  <div class="section-title"><span>🏗️</span> Full System Architecture</div>
+
+  <!-- Module map -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:32px;">
+
+    <div style="background:#1e293b;border:1px solid #6366f144;border-radius:12px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:10px;">🌐 Frontend Layer</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.8;">
+        <strong style="color:#e2e8f0;">templates/index.html</strong><br>
+        Jinja2 template · Upload form · Document list<br><br>
+        <strong style="color:#e2e8f0;">static/styles.css</strong><br>
+        Card layout · Typography · Buttons<br><br>
+        <strong style="color:#475569;">static/app.js</strong><br>
+        <em>(empty — reserved for future JS)</em>
+      </div>
+    </div>
+
+    <div style="background:#1e293b;border:1px solid #14b8a644;border-radius:12px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:#2dd4bf;margin-bottom:10px;">⚡ Application Layer</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.8;">
+        <strong style="color:#e2e8f0;">main.py</strong><br>
+        FastAPI app · Routes · Middleware · Startup<br><br>
+        <strong style="color:#e2e8f0;">ingestion.py</strong><br>
+        extract_text · normalize_text · chunk_text<br><br>
+        <strong style="color:#475569;">models.py</strong><br>
+        <em>(empty — Pydantic schemas placeholder)</em><br><br>
+        <strong style="color:#475569;">llm.py</strong><br>
+        <em>(empty — future AI/LLM integration)</em>
+      </div>
+    </div>
+
+    <div style="background:#1e293b;border:1px solid #f59e0b44;border-radius:12px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:#fcd34d;margin-bottom:10px;">💾 Data Layer</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.8;">
+        <strong style="color:#e2e8f0;">db.py</strong><br>
+        SQLite connection · CRUD operations<br><br>
+        <strong style="color:#e2e8f0;">data/app.db</strong><br>
+        SQLite database file<br><br>
+        <strong style="color:#e2e8f0;">data/uploads/</strong><br>
+        Raw file storage · UUID-named files
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full data flow SVG-style diagram -->
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:28px;overflow-x:auto;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:20px;text-align:center;letter-spacing:.5px;text-transform:uppercase;">Complete Data Flow</div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;min-width:600px;">
+
+      <!-- Row 1: Browser -->
+      <div style="display:flex;gap:24px;align-items:center;">
+        <div class="node n-user" style="min-width:160px;">🌐 Browser</div>
+      </div>
+      <div style="display:flex;gap:80px;">
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="width:2px;height:20px;background:#334155;"></div>
+          <div style="font-size:10px;color:#3b82f6;background:#0f1117;padding:1px 6px;border-radius:3px;">GET /</div>
+          <div style="width:2px;height:10px;background:#334155;"></div>
+          <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #475569;"></div>
+        </div>
+      </div>
+
+      <!-- Row 2: FastAPI -->
+      <div style="display:flex;gap:24px;align-items:flex-start;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div class="node n-route" style="min-width:220px;">⚡ FastAPI (main.py)</div>
+
+          <div style="display:flex;gap:16px;align-items:flex-start;">
+            <!-- left: reads DB -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+              <div style="width:2px;height:20px;background:#334155;"></div>
+              <div style="font-size:10px;color:#f59e0b;background:#0f1117;padding:1px 6px;border-radius:3px;">list_documents()</div>
+              <div style="width:2px;height:10px;background:#334155;"></div>
+              <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #475569;"></div>
+              <div class="node n-db" style="min-width:160px;color:#1c1917;">🗄️ SQLite DB</div>
+              <div style="width:2px;height:10px;background:#334155;"></div>
+              <div style="font-size:10px;color:#22c55e;background:#0f1117;padding:1px 6px;border-radius:3px;">rows returned</div>
+              <div style="width:2px;height:10px;background:#334155;"></div>
+              <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #22c55e;"></div>
+            </div>
+          </div>
+
+          <div class="node n-resp" style="min-width:220px;">Render index.html</div>
+          <div style="width:2px;height:20px;background:#334155;"></div>
+          <div style="font-size:10px;color:#3b82f6;background:#0f1117;padding:1px 6px;border-radius:3px;">HTML response → browser</div>
+        </div>
+      </div>
+
+      <div style="height:16px;"></div>
+      <div style="width:2px;height:20px;background:#334155;"></div>
+      <div style="font-size:10px;color:#f97316;background:#0f1117;padding:1px 6px;border-radius:3px;">POST /upload + files</div>
+      <div style="width:2px;height:10px;background:#334155;"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #475569;"></div>
+
+      <!-- POST /upload box -->
+      <div style="background:#0f1117;border:1px solid #334155;border-radius:12px;padding:20px;width:100%;max-width:700px;">
+        <div style="font-size:12px;font-weight:700;color:#f97316;text-align:center;margin-bottom:16px;">POST /upload — Per File Loop</div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div class="node n-route" style="min-width:120px;font-size:11px;padding:8px 12px;">Generate UUID</div>
+            <div style="width:2px;height:14px;background:#334155;"></div>
+            <div class="node n-file" style="min-width:120px;font-size:11px;padding:8px 12px;">Save file to<br>/data/uploads</div>
+            <div style="width:2px;height:14px;background:#334155;"></div>
+            <div class="node n-db" style="min-width:120px;font-size:11px;padding:8px 12px;color:#1c1917;">Insert doc<br>metadata</div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding-top:30px;color:#6366f1;font-size:20px;">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div class="node n-proc" style="min-width:140px;font-size:11px;padding:8px 12px;">extract_text()<br><span style="font-weight:400;opacity:.8">pdf / docx / txt</span></div>
+            <div style="width:2px;height:14px;background:#334155;"></div>
+            <div class="node n-proc" style="min-width:140px;font-size:11px;padding:8px 12px;">normalize_text()<br><span style="font-weight:400;opacity:.8">strip + clean</span></div>
+            <div style="width:2px;height:14px;background:#334155;"></div>
+            <div class="node n-proc" style="min-width:140px;font-size:11px;padding:8px 12px;">chunk_text()<br><span style="font-weight:400;opacity:.8">800ch + 100 overlap</span></div>
+          </div>
+
+          <div style="display:flex;align-items:center;padding-top:30px;color:#6366f1;font-size:20px;">→</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div class="node n-db" style="min-width:120px;font-size:11px;padding:8px 12px;color:#1c1917;">Insert chunks<br>to SQLite</div>
+            <div style="width:2px;height:14px;background:#334155;"></div>
+            <div class="node n-resp" style="min-width:120px;font-size:11px;padding:8px 12px;">303 Redirect<br>→ GET /</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="height:8px;"></div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;">
+        <div class="node n-future" style="min-width:160px;font-size:11px;">
+          🤖 llm.py (future)<br>
+          <div class="sub">AI / LLM integration<br>Vector search, Q&amp;A</div>
+        </div>
+        <div class="node n-future" style="min-width:160px;font-size:11px;">
+          📐 models.py (future)<br>
+          <div class="sub">Pydantic schemas<br>Request/Response models</div>
+        </div>
+        <div class="node n-future" style="min-width:160px;font-size:11px;">
+          📦 Docker (future)<br>
+          <div class="sub">Dockerfile + compose<br>ready but empty</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- File format support table -->
+  <div style="margin-top:24px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:16px;">Supported File Formats</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+      <div style="background:#0f1117;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">📝</div>
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0;">.txt</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">Built-in Python<br>UTF-8, errors ignored</div>
+      </div>
+      <div style="background:#0f1117;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">📄</div>
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0;">.pdf</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">pypdf library<br>Page-by-page extraction</div>
+      </div>
+      <div style="background:#0f1117;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">📘</div>
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0;">.docx</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">python-docx library<br>Paragraph extraction</div>
+      </div>
+      <div style="background:#0f1117;border-radius:8px;padding:12px;text-align:center;border:1px dashed #334155;">
+        <div style="font-size:24px;margin-bottom:6px;">⛔</div>
+        <div style="font-size:13px;font-weight:600;color:#ef4444;">other</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px;">ValueError raised<br>File skipped silently</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

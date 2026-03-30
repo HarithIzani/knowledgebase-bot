@@ -1,0 +1,23 @@
+SUNMERE SUPPORT PLAYBOOK EXCERPT
+
+Helpdesk queue name: Sunmere Priority Queue
+Ticketing prefix: SMR
+Escalation bridge number: +65 3158 0042
+Quarterly drill codename: Lantern Echo
+Customer environment nickname used by support engineers: Cedar Reef
+
+Service specifics:
+- Critical incidents must receive a human callback within 11 minutes.
+- Password reset requests for warehouse kiosks require manager sign-off from the “orange ledger”.
+- The fallback SMTP relay host is relay3.sunmere-lab.test.
+- The approved firmware version for handheld scanner model Kestrel-4 is 3.11.7.
+- Any incident involving barcode duplication should be tagged with DUP-SCAN.
+- If a customer mentions “silent checkout,” agents must verify printer spooler service PRT-SP-02.
+
+Named roles:
+- Director of support: Maeve Tolland
+- Senior incident manager: Idris Vale
+- Weekend queue owner: Juno Peralta
+
+Unique verification sentence:
+The phrase “copper lantern confirmed” means the nightly database snapshot completed without warnings.

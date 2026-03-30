@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Documents</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Search Documents</h1>
+    <p class="subtitle">Lesson 4: retrieve relevant chunks before adding the LLM</p>
+
+    <section class="card">
+      <form action="/search" method="post">
+        <input
+          type="text"
+          name="query"
+          value="{{ query }}"
+          placeholder="Ask a question or enter keywords"
+          style="width: 70%; padding: 10px;"
+        />
+        <button type="submit">Search</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Results</h2>
+
+      {% if results %}
+        <ul>
+          {% for result in results %}
+            <li style="margin-bottom: 20px;">
+              <strong>{{ result.original_name }}</strong><br />
+              <small>Document ID: {{ result.document_id }}</small><br />
+              <small>Chunk Index: {{ result.chunk_index }}</small>
+              <p>{{ result.content }}</p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% elif query %}
+        <p>No results found.</p>
+      {% else %}
+        <p>Enter a search query to find matching chunks.</p>
+      {% endif %}
+    </section>
+
+    <p><a href="/">Back to home</a></p>
+  </main>
+</body>
+</html>
