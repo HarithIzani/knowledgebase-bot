@@ -3,30 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Search Documents</title>
+  <title>Ask Documents</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
   <main class="container">
-    <h1>Search Documents</h1>
-    <p class="subtitle">Retrieve relevant chunks before adding the LLM</p>
+    <h1>Ask Your Documents</h1>
+    <p class="subtitle">Retrieve chunks and answer with Ollama</p>
 
     <section class="card">
-      <form action="/search" method="post">
-        <input
-          type="text"
-          name="query"
-          value="{{ query }}"
-          placeholder="Ask a question or enter keywords"
-          style="width: 70%; padding: 10px;"
-        />
-        <button type="submit">Search</button>
+      <form action="/ask" method="post">
+        <textarea
+          name="question"
+          rows="4"
+          style="width: 100%; padding: 10px;"
+          placeholder="Ask a question about your uploaded documents..."
+        >{{ question }}</textarea>
+        <button type="submit">Ask</button>
       </form>
     </section>
 
     <section class="card">
-      <h2>Results</h2>
+      <h2>Answer</h2>
+      {% if answer %}
+        <p>{{ answer }}</p>
+      {% else %}
+        <p>No answer yet.</p>
+      {% endif %}
+    </section>
 
+    <section class="card">
+      <h2>Retrieved Chunks</h2>
       {% if results %}
         <ul>
           {% for result in results %}
@@ -38,14 +45,13 @@
             </li>
           {% endfor %}
         </ul>
-      {% elif query %}
-        <p>No results found.</p>
       {% else %}
-        <p>Enter a search query to find matching chunks.</p>
+        <p>No retrieved chunks yet.</p>
       {% endif %}
     </section>
 
     <p><a href="/">Back to home</a></p>
+    <p><a href="/search">Go to search</a></p>
   </main>
 </body>
 </html>

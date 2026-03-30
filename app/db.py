@@ -108,8 +108,25 @@ def list_documents():
 
     return rows
 
-def sanitize_fts_query(query: str) -> str:
-    return " ".join(query.replace('"', " ").split())
+def simplify_question_for_search(query: str) -> list[str]:
+    cleaned = query.lower()
+
+    for char in ['"', "'", "?", "!", ":", ";", ",", ".", "(", ")", "[", "]", "{", "}", "/", "\\", "-"]:
+        cleaned = cleaned.replace(char, " ")
+
+    words = cleaned.split()
+
+    stop_words = {
+        "what", "is", "the", "of", "a", "an", "and", "to", "in", "for",
+        "on", "at", "does", "do", "did", "where", "when", "why", "how",
+        "which", "who", "whom", "this", "that", "these", "those"
+    }
+
+    keywords = [word for word in words if word not in stop_words and len(word) > 1]
+    return keywords
+
+def build_fts_or_query(keywords: list[str]) -> str:
+    return " OR ".join(keywords)
 
 def get_chunks_for_document(doc_id):
     conn = get_connection()
@@ -129,7 +146,13 @@ def get_chunks_for_document(doc_id):
 def search_chunks(query: str, limit: int = 5):
     conn = get_connection()
 
-    query = sanitize_fts_query(query)
+    keywords = simplify_question_for_search(query)
+
+    if not keywords:
+        conn.close()
+        return []
+
+    fts_query = build_fts_or_query(keywords)
 
     rows = conn.execute(
         """
@@ -138,14 +161,16 @@ def search_chunks(query: str, limit: int = 5):
             chunk_fts.content,
             chunk_fts.document_id,
             chunk_fts.chunk_index,
-            documents.original_name
+            documents.original_name,
+            bm25(chunk_fts) AS score
         FROM chunk_fts
         JOIN documents
           ON documents.doc_id = chunk_fts.document_id
         WHERE chunk_fts MATCH ?
+        ORDER BY score
         LIMIT ?
         """,
-        (query, limit)
+        (fts_query, limit)
     ).fetchall()
 
     conn.close()
